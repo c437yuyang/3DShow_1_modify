@@ -2045,7 +2045,8 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	CString wPathAttDst = GetAppPath() + L"AttCut\\out";
 	string pathAttSrc = W2A(wPathAttSrc);
 	string pathAttDst = W2A(wPathAttDst);
-
+	FindOrCreateDirectory(pathAttSrc.c_str());
+	FindOrCreateDirectory(pathAttDst.c_str());
 	DeleteDirectory(pathAttSrc);
 	DeleteDirectory(pathAttDst);
 
