@@ -46,3 +46,16 @@
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 #endif
+
+
+
+#pragma region 需要包含的公共头文件
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <io.h>
+#include <opencv2/opencv.hpp>
+using namespace std;
+using namespace cv;
+#include "YXPFileIO.h"
+#pragma endregion

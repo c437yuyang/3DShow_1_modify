@@ -60,12 +60,14 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\codes\帮助文档\OpenCV帮助文档\OpenCV_VS_PropertySheet\OpenCV249_DEBUG_X86_VC12.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\codes\帮助文档\OpenCV帮助文档\OpenCV_VS_PropertySheet\OpenCV249_RELEASE_X86_VC12.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -196,7 +198,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
     <ClInclude Include="CvvImage.h" />
     <ClInclude Include="DlgProgress.h" />
     <ClInclude Include="DlgPtConfirm.h" />
@@ -208,9 +209,9 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="VideoPlayer.h" />
     <ClInclude Include="VideoPlayerDlg.h" />
+    <ClInclude Include="YXPFileIO.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common.cpp" />
     <ClCompile Include="CvvImage.cpp" />
     <ClCompile Include="DlgProgress.cpp" />
     <ClCompile Include="DlgPtConfirm.cpp" />
@@ -225,6 +226,7 @@
     </ClCompile>
     <ClCompile Include="VideoPlayer.cpp" />
     <ClCompile Include="VideoPlayerDlg.cpp" />
+    <ClCompile Include="YXPFileIO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VideoPlayer.rc" />

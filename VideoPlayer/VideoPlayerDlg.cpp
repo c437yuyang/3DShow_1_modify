@@ -7,16 +7,9 @@
 #include "VideoPlayer.h"
 #include "VideoPlayerDlg.h"
 #include "afxdialogex.h"
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <io.h>
-#include <opencv2/opencv.hpp>
+
 #include "DlgSnapProg.h"
 #include "DlgPtConfirm.h"
-#include "Common.h"
-using namespace std;
-using namespace cv;
 
 CEvent start_event;
 bool g_bIsStarted = false; //开始播放的标志
@@ -46,11 +39,6 @@ cv::Point g_ptEnd;
 #define new DEBUG_NEW
 #endif
 
-void GetFileName(const string &strFolder, vector<string> &strVecFileNames);
-bool  CheckFolderExist(const string &strPath);
-string GetFileNameNoPath(string &filename);
-void DeleteDirectory(string path);
-
 void MyShowImage(const string winName, Mat &Image, unsigned nScale = 1)
 {
 	namedWindow(winName, CV_WINDOW_NORMAL);
@@ -73,7 +61,6 @@ void on_MouseHandle_Snap(int event, int x, int y, int flags, void *param);
 void DrawRectangle(cv::Mat& img, cv::Rect box);
 cv::Rect g_rectangle;
 bool g_bDrawingBox = false;
-
 
 int g_nDelay = 80;
 
@@ -377,29 +364,13 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 {
 	// TODO:  在此添加控件通知处理程序代码
 
-	if (g_bIsStarted)
-		OnBnClickedStopvideo();
+	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
 
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-	CString cStrPath;
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, wchPath))
-	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
-	}
 	if (cStrPath.IsEmpty())
 		return;
+
+	if (g_bIsStarted)
+		OnBnClickedStopvideo();
 
 	if (cStrPath.Find(_T("MidView")) == -1)
 	{
@@ -414,8 +385,8 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 
 	//加入判断上中视角照片数目检测，取二者较小值,然后删掉多余图片
 	vector<std::string> vecStrMid, vecStrUp;
-	GetFileName(g_strPathMid, vecStrMid);
-	GetFileName(g_strPathUp, vecStrUp);
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, vecStrMid);
+	YXPFileIO::GetDirectoryFiles(g_strPathUp, vecStrUp);
 	int nCountMin = -1;
 	int nCountMax = -1;
 	bool bMidGT = false;
@@ -460,7 +431,7 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 
 	//取得文件总数
 	vector<std::string> strVecTemp;
-	GetFileName(g_strPathMid, strVecTemp);
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, strVecTemp);
 	int nPicCount = strVecTemp.size();
 	float fStep = 100.0 / (nPicCount * 2);
 
@@ -937,91 +908,6 @@ BOOL CVideoPlayerDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
-
-//void CVideoPlayerDlg::OnBnClickedUpview()
-//{
-//	// TODO:  在此添加控件通知处理程序代码
-//	string files = g_strPath;
-//	if (files == " ")
-//	{
-//		AfxMessageBox(_T("请先选择开始按钮"));
-//		return;
-//	}
-//	int pos = files.find_last_of("\\") + 1;
-//	files = files.erase(pos);
-//	files = files.append("upview");//已更改到上视图文件夹
-//
-//	Common com;//调用公共文件（公共类）中的函数
-//	com.replace_all_distinct(files, "\\\\", "\\");   //替换数据\\\\到\\  
-//	string picname = files;
-//	files = files + "\\*.jpg";
-//
-//	size_t size = files.length();//string 转为LPCWSTR
-//	wchar_t *filena = new wchar_t[size + 1];
-//	MultiByteToWideChar(CP_ACP, 0, files.c_str(), size + 1, filena, size * sizeof(wchar_t));
-//	filena[size + 1] = 0;  // 确保以 '\0' 结尾 
-//
-//	WIN32_FIND_DATA FindFileData;
-//	HANDLE hFind;
-//	vector<string> picnameve;
-//	int find = 1;
-//	hFind = FindFirstFile(filena, &FindFileData);
-//	if (hFind == INVALID_HANDLE_VALUE)
-//	{
-//		AfxMessageBox(_T("没找到上视图文件夹"));
-//		return;
-//	}
-//	else
-//	{
-//		while (find)
-//		{
-//			Common com;
-//			string nametem = com.WChar2Ansi(FindFileData.cFileName);
-//			picnameve.push_back(nametem);
-//			find = FindNextFile(hFind, &FindFileData);
-//		}
-//		FindClose(hFind);
-//	}
-//	auto it = picnameve.begin();
-//	if (g_nFrameIndex<0 || g_nFrameIndex>picnameve.size())
-//	{
-//		AfxMessageBox(_T("超出索引范围"));
-//		return;
-//	}
-//	picname = picname + "\\" + (*(it + g_nFrameIndex));//指定图片的详细地址
-//	const char* cpicname = picname.c_str();//string转const char*
-//	m_upViewFrame = cvLoadImage(cpicname, 1);//1代表读入彩色图片
-//	Display(m_upViewFrame, IDC_VIDEO);
-//}
-
-
-bool FindOrCreateDirectory(const char *pszPath)
-{
-	USES_CONVERSION;
-	WIN32_FIND_DATA fd;
-	HANDLE hFind = ::FindFirstFileW(A2W(pszPath), &fd);
-	while (hFind != INVALID_HANDLE_VALUE)
-	{
-		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
-			//::AfxMessageBox(_T("目录存在！"));
-			return true;
-		}
-	}
-
-	if (!::CreateDirectory(A2W(pszPath), NULL))
-	{
-		//char szDir[MAX_PATH];
-		::AfxMessageBox(_T("创建目录失败"));
-		return false;
-	}
-	else
-	{
-		return true;
-		//::AfxMessageBox(_T("创建目录成功"));
-	}
-}
-
 CString CVideoPlayerDlg::GetAppPath()
 {
 	TCHAR exeFullPath[MAX_PATH];
@@ -1036,72 +922,17 @@ CString CVideoPlayerDlg::GetAppPath()
 void CVideoPlayerDlg::OnClickedSnap()
 {
 	// TODO:  在此添加控件通知处理程序代码
-
 	USES_CONVERSION;
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-	CString cStrPath;
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, wchPath))
-	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
-	}
-
+	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
 	if (cStrPath.IsEmpty())
 		return;
 
 	g_strPathMid = CT2CA(cStrPath.GetBuffer());
 
-	//if (g_strPathMid.find("MidView") == -1)
-	//{
-	//	AfxMessageBox(_T("请打开中视角文件夹"));
-	//	return;
-	//}
-
-	/*g_strPathUp = g_strPathMid.substr(0, g_strPathMid.find("MidView")) + "UpView";*/
-	//size_t size = strJpgAllPath.length();//length()返回的没有/0的长度
-	//wchar_t *wchPath = new wchar_t[size + 1];
-	//MultiByteToWideChar(CP_ACP, 0, strJpgAllPath.c_str(), size + 1, wchPath, size * sizeof(wchar_t));
-	//这两种方法都可以
-	//string str = W2A(wchPath);
-
-
-	wcscat_s(wchPath, _T("\\*.jpg"));
-
-	WIN32_FIND_DATA FindFileData;
-	HANDLE hFind;
-	vector<string> vecPicName;
-	int find = 1;
-	hFind = FindFirstFile(wchPath, &FindFileData);
-	if (hFind == INVALID_HANDLE_VALUE)
-	{
-		AfxMessageBox(_T("没找到文件夹"));
-		return;
-	}
-	else
-	{
-		while (find)
-		{
-			string strFileName = W2A(FindFileData.cFileName);
-			strFileName = g_strPathMid + "\\" + strFileName; //现在是全路径名了
-			vecPicName.push_back(strFileName);
-			find = FindNextFile(hFind, &FindFileData);
-		}
-		FindClose(hFind);
-	}
+	vector<std::string> vecPicName;
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, vecPicName, true, false, ".jpg");
 
 	//vecPicName里存的就是文件全路径名称了 双斜杠
-
 	Mat imgOrigin, imgSnaped, imgTemp;
 	std::string strImgSnapedName;
 	imgOrigin = imread(vecPicName.front());//读取第一张图
@@ -1143,7 +974,7 @@ void CVideoPlayerDlg::OnClickedSnap()
 
 	//int index = g_strPath.rfind('\\');
 	string strSnapedPath = g_strPathMid + "_Snaped";
-	cout << FindOrCreateDirectory(strSnapedPath.c_str());
+	cout << (YXPFileIO::FindOrCreateDirectory(strSnapedPath.c_str()) ? " 创建snap目录成功\n " : "创建snap目录失败\n");
 
 	m_fProgress = 0.0;
 	UINT nSnapTotal = vecPicName.size();
@@ -1190,58 +1021,18 @@ void CVideoPlayerDlg::OnBnClickedProcess()
 {
 	// TODO:  在此添加控件通知处理程序代码
 	USES_CONVERSION;
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-	CString cStrPath;
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, wchPath))
-	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
-	}
+	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
 
 	if (cStrPath.IsEmpty())
 		return;
 
 	g_strPathMid = CT2CA(cStrPath.GetBuffer());
-
-	wcscat_s(wchPath, _T("\\*.jpg"));
-
-
-	WIN32_FIND_DATA FindFileData;
-	HANDLE hFind;
-	vector<string> vecPicName;
-	int find = 1;
-	hFind = FindFirstFile(wchPath, &FindFileData);
-	if (hFind == INVALID_HANDLE_VALUE)
-	{
-		AfxMessageBox(_T("没找到文件夹"));
-		return;
-	}
-	else
-	{
-		while (find)
-		{
-			string strFileName = W2A(FindFileData.cFileName);
-			strFileName = g_strPathMid + "\\" + strFileName; //现在是全路径名了
-			vecPicName.push_back(strFileName);
-			find = FindNextFile(hFind, &FindFileData);
-		}
-		FindClose(hFind);
-	}
+	vector<std::string> vecPicName;
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, vecPicName, true, false, ".jpg");
 
 	string strProcessedPath = g_strPathMid + "_Processed";
 
-	if (!FindOrCreateDirectory(strProcessedPath.c_str()))
+	if (!YXPFileIO::FindOrCreateDirectory(strProcessedPath.c_str()))
 		return; //若创建文件夹失败则不继续
 
 	Mat imgOrigin, imgTemp;
@@ -1563,30 +1354,6 @@ void CVideoPlayerDlg::OnBnClickedBtnUpview()
 
 }
 
-void GetFileName(const string &strFolder, vector<string> &strVecFileNames)
-{
-	strVecFileNames.clear();
-	struct _finddata_t filefind;
-	string  curr = strFolder + "\\*.*";
-	int  done = 0;
-	int  handle;
-	if ((handle = _findfirst(curr.c_str(), &filefind)) == -1)
-		return;
-	string tempfolder = strFolder + "\\";
-	while (!(done = _findnext(handle, &filefind)))
-	{
-		if (!strcmp(filefind.name, ".."))  //用此方法第一个找到的文件名永远是".."，所以需要单独判断
-			continue;
-		string temp(filefind.name);
-		if (temp.find("ply") != -1 || temp.find("avi") != -1) //判断不需要的文件类型
-		{
-			continue;
-		}
-		strVecFileNames.push_back(tempfolder + filefind.name);
-	}
-	_findclose(handle);
-}
-
 void CVideoPlayerDlg::OnSize(UINT nType, int cx, int cy)
 {
 	//计算窗口宽度和高度的改变量
@@ -1659,8 +1426,8 @@ void CVideoPlayerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (m_bLBDown && g_bIsStarted && g_bIsPaused)
 	{
-		//HCURSOR hCur = LoadCursor(NULL, IDC_SIZE);
-		//::SetCursor(hCur);
+		HCURSOR hCur = LoadCursor(NULL, IDC_HELP);
+		::SetCursor(hCur);
 		int nR = (int)GetRValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
 		int nG = (int)GetGValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
 		int nB = (int)GetBValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
@@ -1781,30 +1548,14 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	string pathAttSrc = W2A(wPathAttSrc);
 	string pathAttDst = W2A(wPathAttDst);
 
-	FindOrCreateDirectory(pathAttSrc.c_str());
-	FindOrCreateDirectory(pathAttDst.c_str());
+	YXPFileIO::FindOrCreateDirectory(pathAttSrc.c_str());
+	YXPFileIO::FindOrCreateDirectory(pathAttDst.c_str());
 
-	DeleteDirectory(pathAttSrc);
-	DeleteDirectory(pathAttDst);
+	YXPFileIO::DeleteDirectory(pathAttSrc,false);
+	YXPFileIO::DeleteDirectory(pathAttDst,false);
 
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-	CString cStrPath;
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, wchPath))
-	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
-	}
+
+	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
 
 	if (cStrPath.IsEmpty())
 		return;
@@ -1812,12 +1563,12 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	g_strPathMid = CT2CA(cStrPath.GetBuffer());
 	string pathProcessed = g_strPathMid + "_Processed";
 
-	if (!FindOrCreateDirectory(pathProcessed.c_str()))
+	if (!YXPFileIO::FindOrCreateDirectory(pathProcessed.c_str()))
 		return; //若创建文件夹失败则不继续
 
 	//先拷贝源文件夹到AttCut需要处理的地方
 	vector<string> strVecPics;
-	GetFileName(g_strPathMid, strVecPics);
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, strVecPics);
 	for (auto it = strVecPics.begin(); it != strVecPics.end(); ++it)
 	{
 		string filename = it->substr(it->rfind("\\"), it->length());
@@ -1877,8 +1628,8 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	//执行完了再拷贝回来
 	vector<std::string> strVecSrcPics;
 	vector<std::string> strVecMaskPics;
-	GetFileName(pathAttDst, strVecMaskPics);
-	GetFileName(g_strPathMid, strVecSrcPics);
+	YXPFileIO::GetDirectoryFiles(pathAttDst, strVecMaskPics);
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, strVecSrcPics);
 	if (strVecMaskPics.size() != strVecSrcPics.size())
 	{
 		AfxMessageBox(_T("掩模图像数目不一致！"));
@@ -1896,8 +1647,8 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 		//拷贝
 		img.copyTo(dst, mask);
 
-		cout << pathProcessed + "\\" + GetFileNameNoPath(strVecSrcPics[i]) << endl;
-		imwrite(pathProcessed + "\\" + GetFileNameNoPath(strVecSrcPics[i]), dst);
+		cout << pathProcessed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]) << endl;
+		imwrite(pathProcessed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]), dst);
 	}
 
 
@@ -1906,48 +1657,15 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 
 }
 
-
-void DeleteDirectory(string path)
-{
-	vector<string> files;
-	GetFileName(path, files);
-	if (files.size() == 0)
-	{
-		return;
-	}
-	for (int i = 0; i != files.size(); ++i)
-	{
-		DeleteFileA(files[i].c_str());
-	}
-}
-
 void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	USES_CONVERSION;
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-	CString cStrPath;
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-
-	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, wchPath))
-	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
-	}
+	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
 
 	if (cStrPath.IsEmpty())
 		return;
 
+	USES_CONVERSION;
 	m_strPath = CT2CA(cStrPath.GetBuffer()); //带前不带后
 
 	if (m_strPath.find("View") != -1)
@@ -1963,20 +1681,21 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	m_strPathUpSnap = m_strPath + "\\UpView_Snaped";
 	m_strPathUpPed = m_strPath + "\\UpView_Snaped_Processed";
 
-	if (!CheckFolderExist(m_strPathMid) || !CheckFolderExist(m_strPathUp))
+	if (!YXPFileIO::FolderExists(A2W(m_strPathMid.c_str())) 
+		|| !YXPFileIO::FolderExists(A2W(m_strPathUp.c_str())))
 	{
 		AfxMessageBox(_T("未找到View文件夹!"));
 		return;
 	}
 
-	FindOrCreateDirectory(m_strPathMidSnap.c_str());
-	FindOrCreateDirectory(m_strPathMidPed.c_str());
-	FindOrCreateDirectory(m_strPathUpSnap.c_str());
-	FindOrCreateDirectory(m_strPathUpPed.c_str());
+	YXPFileIO::FindOrCreateDirectory(m_strPathMidSnap.c_str());
+	YXPFileIO::FindOrCreateDirectory(m_strPathMidPed.c_str());
+	YXPFileIO::FindOrCreateDirectory(m_strPathUpSnap.c_str());
+	YXPFileIO::FindOrCreateDirectory(m_strPathUpPed.c_str());
 
 	vector<string> Files_Mid, Files_Up;
-	GetFileName(m_strPathMid, Files_Mid);
-	GetFileName(m_strPathUp, Files_Up);
+	YXPFileIO::GetDirectoryFiles(m_strPathMid, Files_Mid);
+	YXPFileIO::GetDirectoryFiles(m_strPathUp, Files_Up);
 	int nMidCount = Files_Mid.size();
 	int nUpCount = Files_Up.size();
 	float fTotal = nMidCount + nUpCount;
@@ -1999,7 +1718,7 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	{
 		imgOrigin = imread(midFile);
 		imgSnaped = imgOrigin(ROI);
-		fileNameNoExt = GetFileNameNoPath(midFile);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
 		imwrite(m_strPathMidSnap + "\\" + fileNameNoExt, imgSnaped);
 		cout << fileNameNoExt << " Snap Mid Done." << endl;
 		if (m_fProgress < 25.0)
@@ -2010,7 +1729,7 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	{
 		imgOrigin = imread(upFile);
 		imgSnaped = imgOrigin(ROI);
-		fileNameNoExt = GetFileNameNoPath(upFile);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(upFile);
 		imwrite(m_strPathUpSnap + "\\" + fileNameNoExt, imgSnaped);
 		cout << fileNameNoExt << " Snap Up Done." << endl;
 		if (m_fProgress < 50.0)
@@ -2019,8 +1738,8 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	m_fProgress = 50.0;
 
 	//中视角处理开始
-	GetFileName(m_strPathMidSnap, Files_Mid);
-	GetFileName(m_strPathUpSnap, Files_Up);
+	YXPFileIO::GetDirectoryFiles(m_strPathMidSnap, Files_Mid);
+	YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, Files_Up);
 	Rect rectGrabCut;
 	rectGrabCut.x = (g_SnapWidth - g_GrabWidth) / 2;
 	rectGrabCut.x = (g_SnapHeight - g_GrabHeight) / 2;
@@ -2032,7 +1751,7 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 		Mat imgOrigin, imgProcessed;
 		imgOrigin = imread(midFile);
 		m_extractor.TargetExtract_GrabCut(imgOrigin, imgProcessed, rectGrabCut, 3, 0.25);
-		fileNameNoExt = GetFileNameNoPath(midFile);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
 		imwrite(m_strPathMidPed + "\\" + fileNameNoExt, imgProcessed);
 		cout << fileNameNoExt << " GrabCut Done." << endl;
 		if (m_fProgress < 75.0)
@@ -2045,14 +1764,14 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	CString wPathAttDst = GetAppPath() + L"AttCut\\out";
 	string pathAttSrc = W2A(wPathAttSrc);
 	string pathAttDst = W2A(wPathAttDst);
-	FindOrCreateDirectory(pathAttSrc.c_str());
-	FindOrCreateDirectory(pathAttDst.c_str());
-	DeleteDirectory(pathAttSrc);
-	DeleteDirectory(pathAttDst);
+	YXPFileIO::FindOrCreateDirectory(pathAttSrc.c_str());
+	YXPFileIO::FindOrCreateDirectory(pathAttDst.c_str());
+	YXPFileIO::DeleteDirectory(pathAttSrc);
+	YXPFileIO::DeleteDirectory(pathAttDst);
 
 	//先拷贝源文件夹到AttCut需要处理的地方
 	vector<string> strVecPics;
-	GetFileName(m_strPathUpSnap, strVecPics);
+	YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, strVecPics);
 	for (auto it = strVecPics.begin(); it != strVecPics.end(); ++it)
 	{
 		string filename = it->substr(it->rfind("\\"), it->length());
@@ -2112,8 +1831,8 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	//执行完了再拷贝回来
 	vector<std::string> strVecSrcPics;
 	vector<std::string> strVecMaskPics;
-	GetFileName(pathAttDst, strVecMaskPics);
-	GetFileName(m_strPathUpSnap, strVecSrcPics);
+	YXPFileIO::GetDirectoryFiles(pathAttDst, strVecMaskPics);
+	YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, strVecSrcPics);
 	if (strVecMaskPics.size() != strVecSrcPics.size())
 	{
 		AfxMessageBox(_T("掩模图像数目不一致！"));
@@ -2130,8 +1849,8 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 		threshold(mask, mask, 128, 255, CV_THRESH_BINARY);
 		//拷贝
 		img.copyTo(dst, mask);
-		cout << GetFileNameNoPath(strVecSrcPics[i]) << " AttCut Done." << endl;
-		imwrite(m_strPathUpPed + "\\" + GetFileNameNoPath(strVecSrcPics[i]), dst);
+		cout << YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]) << " AttCut Done." << endl;
+		imwrite(m_strPathUpPed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]), dst);
 		if (m_fProgress < 100.0)
 			m_fProgress += fStep;
 	}
@@ -2141,26 +1860,9 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 
 }
 
-bool CheckFolderExist(const string &strPath)
-{
-	WIN32_FIND_DATA  wfd;
-	bool rValue = false;
-	USES_CONVERSION;
-	CString wstrPath = A2W(strPath.c_str());
-	HANDLE hFind = FindFirstFile(wstrPath, &wfd);
-	if ((hFind != INVALID_HANDLE_VALUE) && (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-	{
-		rValue = true;
-	}
-	FindClose(hFind);
-	return rValue;
-}
 
-string GetFileNameNoPath(string &filename)
-{
-	int pos = filename.rfind("\\");
-	return filename.substr(pos + 1, filename.length() - pos);
-}
+
+
 
 void CVideoPlayerDlg::OnExitSizeMove()
 {
