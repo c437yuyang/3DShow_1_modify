@@ -359,6 +359,33 @@ HCURSOR CVideoPlayerDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void writeFramesToVideo(const vector<std::string> &vecImgs, const std::string &videoFileName,float &progress,float fStep)  //后两个参数只是这里要用，蛋疼
+{
+	VideoWriter writer;
+	int frameRate = 5;
+	Size frameSize;
+	for (auto it = vecImgs.begin(); it != vecImgs.end(); ++it)
+	{
+		Mat frame;
+		frame = imread(*it);    // 读入图片
+		if (!writer.isOpened())
+		{
+			frameSize.width = frame.cols;
+			frameSize.height = frame.rows;
+
+			if (!writer.open(videoFileName, CV_FOURCC('M', 'P', '4', '2'), frameRate, frameSize, true))
+			{ //这里不能打开后缀名为Ply的文件，所以只能后面再改名
+			  //cout << "open writer error..." << endl;
+				AfxMessageBox(_T("open error!"));
+				return;
+			}
+		}
+		// 将图片数据写入
+		writer.write(frame);
+		progress += fStep;
+	}
+	writer.release();
+}
 
 void CVideoPlayerDlg::OnBnClickedStartvideo()
 {
@@ -383,35 +410,35 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 	g_strPathUp.replace(g_strPathUp.find("Mid"), 3, "Up");
 
 
-	//加入判断上中视角照片数目检测，取二者较小值,然后删掉多余图片
-	vector<std::string> vecStrMid, vecStrUp;
-	YXPFileIO::GetDirectoryFiles(g_strPathMid, vecStrMid);
-	YXPFileIO::GetDirectoryFiles(g_strPathUp, vecStrUp);
+	//加入判断上中视角照片数目检测，取二者较小值,然后删掉多余图片（processed文件夹里的图像被删除）
+	vector<std::string> MidFilesPath, UpFilesPath;
+	YXPFileIO::GetDirectoryFiles(g_strPathMid, MidFilesPath, true, false, ".jpg");
+	YXPFileIO::GetDirectoryFiles(g_strPathUp, UpFilesPath, true, false, ".jpg");
 	int nCountMin = -1;
 	int nCountMax = -1;
 	bool bMidGT = false;
-	if (vecStrMid.size() != vecStrUp.size())
+	if (MidFilesPath.size() != UpFilesPath.size())
 	{
-		if (vecStrMid.size() > vecStrUp.size())
+		if (MidFilesPath.size() > UpFilesPath.size())
 		{
 			bMidGT = true;
-			nCountMin = vecStrUp.size();
-			nCountMax = vecStrMid.size();
+			nCountMin = UpFilesPath.size();
+			nCountMax = MidFilesPath.size();
 			for (int i = 0; i != nCountMax - nCountMin; ++i)
 			{
-				DeleteFileA(vecStrMid.back().c_str());
-				vecStrMid.pop_back();
+				DeleteFileA(MidFilesPath.back().c_str());
+				MidFilesPath.pop_back();
 			}
 		}
 		else
 		{
 			bMidGT = false;
-			nCountMin = vecStrMid.size();
-			nCountMax = vecStrUp.size();
+			nCountMin = MidFilesPath.size();
+			nCountMax = UpFilesPath.size();
 			for (int i = 0; i != nCountMax - nCountMin; ++i)
 			{
-				DeleteFileA(vecStrUp.back().c_str());
-				vecStrUp.pop_back();
+				DeleteFileA(UpFilesPath.back().c_str());
+				UpFilesPath.pop_back();
 			}
 		}
 
@@ -423,141 +450,36 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 	std::string strVideoPathUp = g_strPathUp + "\\" + "output.avi";
 	std::string strPlyPathUp = g_strPathUp + "\\" + "output.ply";//最终输出文件全路径
 
-	CString cStrPlyPathMid = CString(strPlyPathMid.c_str());//应用A2CW转换 从char *转换为LPCWSTR
-	CString cStrPlyPathUp = CString(strPlyPathUp.c_str());//应用A2CW转换 从char *转换为LPCWSTR
-
-	cStrPlyPathMid.ReleaseBuffer();
-	cStrPlyPathUp.ReleaseBuffer();
+	//CString cStrPlyPathMid = CString(strPlyPathMid.c_str());
+	//CString cStrPlyPathUp = CString(strPlyPathUp.c_str());
 
 	//取得文件总数
-	vector<std::string> strVecTemp;
-	YXPFileIO::GetDirectoryFiles(g_strPathMid, strVecTemp);
-	int nPicCount = strVecTemp.size();
-	float fStep = 100.0 / (nPicCount * 2);
+	float fStep = 100.0 / (MidFilesPath.size() + UpFilesPath.size());
 
 	m_fProgress = 0.0;
 	_beginthread(ThradProCtlCreate, 0, this);
 	_beginthread(ProgressThread, 0, this);
 
-	if (!(PathFileExists(cStrPlyPathMid)))//判断mid视角文件output.ply是否存在
-	{
 
-		string strFileExtension = "jpg";
-		string strJpgAllPath = g_strPathMid + "\\*." + strFileExtension;
-
-		VideoWriter writer;
-		int frameRate = 5;
-		Size frameSize;
-		char chFileAllName[1000];
-		struct _finddata_t fileInfo;    // 文件信息结构体
-
-		// 1. 第一次查找
-		long findResult = _findfirst(strJpgAllPath.c_str(), &fileInfo);
-		if (findResult == -1)
-		{
-			_findclose(findResult);
-			return;
-		}
-
-		// 2. 循环查找
-		do
-		{
-			sprintf_s(chFileAllName, "%s\\%s", g_strPathMid.c_str(), fileInfo.name);
-			if (fileInfo.attrib == _A_ARCH)  // 是存档类型文件
-			{
-				Mat frame;
-				frame = imread(chFileAllName);    // 读入图片
-				//resize(frame, frame, Size(0.25 * frame.cols, 0.25*frame.rows), 0.0, 0.0);
-				if (!writer.isOpened())
-				{
-					frameSize.width = frame.cols;
-					frameSize.height = frame.rows;
-
-					if (!writer.open(strVideoPathMid, CV_FOURCC('M', 'P', '4', '2'), frameRate, frameSize, true))
-					{ //这里不能打开后缀名为Ply的文件，所以只能后面再改名
-						//cout << "open writer error..." << endl;
-						AfxMessageBox(_T("open error!"));
-						return;
-					}
-				}
-				// 将图片数据写入
-				writer.write(frame);
-				m_fProgress += fStep;
-				// 显示
-				//waitKey(frameRate);
-			}
-
-		} while (!_findnext(findResult, &fileInfo));
-		writer.release();//一定要释放掉啊！！！！！		
-		_findclose(findResult);
-		rename(strVideoPathMid.c_str(), strPlyPathMid.c_str()); //更换命名方式，更换后缀名,隐藏文件ply
-	}
-
+	//改为每次都重新生成（不然很容易各种错误）
+	writeFramesToVideo(MidFilesPath, strVideoPathMid, m_fProgress, fStep);
+	
 	m_fProgress = 50.0;
 	Sleep(100);
 
-	if (!(PathFileExists(cStrPlyPathUp)))//判断up视角文件output.ply是否存在
-	{
-		string strFileExtension = "jpg";
-		string strJpgAllPath = g_strPathUp + "\\*." + strFileExtension;
-
-		VideoWriter writer;
-		int frameRate = 5;
-		Size frameSize;
-		char chFileAllName[1000];
-		struct _finddata_t fileInfo;    // 文件信息结构体
-
-		// 1. 第一次查找
-		long findResult = _findfirst(strJpgAllPath.c_str(), &fileInfo);
-		if (findResult == -1)
-		{
-			_findclose(findResult);
-			return;
-		}
-
-		// 2. 循环查找
-		do
-		{
-			sprintf_s(chFileAllName, "%s\\%s", g_strPathUp.c_str(), fileInfo.name);
-			if (fileInfo.attrib == _A_ARCH)  // 是存档类型文件
-			{
-				Mat frame;
-				frame = imread(chFileAllName);    // 读入图片
-				//resize(frame, frame, Size(0.25 * frame.cols, 0.25*frame.rows), 0.0, 0.0);
-
-				if (!writer.isOpened())
-				{
-					frameSize.width = frame.cols;
-					frameSize.height = frame.rows;
-					if (!writer.open(strVideoPathUp, CV_FOURCC('M', 'P', '4', '2'), frameRate, frameSize, true))
-						//if (!writer.open(strVideoPathUp, CV_FOURCC('D', 'I', 'V', 'X'), frameRate, frameSize, true))
-					{ //这里不能打开后缀名为Ply的文件，所以只能后面再改名
-					  //cout << "open writer error..." << endl;
-						AfxMessageBox(_T("open error!"));
-						return;
-					}
-				}
-				// 将图片数据写入
-				writer.write(frame);
-				// 显示
-				m_fProgress += fStep;
-			}
-
-		} while (!_findnext(findResult, &fileInfo));
-		writer.release();//一定要释放掉啊！！！！！
-
-		_findclose(findResult);
-		rename(strVideoPathUp.c_str(), strPlyPathUp.c_str()); //更换命名方式，更换后缀名,隐藏文件ply
-	}
+	writeFramesToVideo(UpFilesPath, strVideoPathUp, m_fProgress, fStep);
 	m_fProgress = 80.0;
+
+	rename(strVideoPathMid.c_str(), strPlyPathMid.c_str()); //rename两个输出的video
+	rename(strVideoPathUp.c_str(), strPlyPathUp.c_str());
 
 	//在这里统计最大矩形信息
 	//cout << vecStrMid.size() << endl;
-	for (int i = 0; i != vecStrMid.size(); ++i)
+	for (int i = 0; i != MidFilesPath.size(); ++i)
 	{
-		if (vecStrMid[i].find("ply") != -1)
+		if (MidFilesPath[i].find("ply") != -1)
 			continue;
-		Mat img = imread(vecStrMid[i]);
+		Mat img = imread(MidFilesPath[i]);
 		Rect rect = GetMaxRect(img);
 		if (m_rectMax.width < rect.width)
 			m_rectMax.width = rect.width;
@@ -666,7 +588,7 @@ DWORD WINAPI PlayVideo(LPVOID lpParam)
 void CVideoPlayerDlg::ShowToPicCtl(IplImage *imgSrc, UINT ID)
 {
 	CDC* pDC = GetDlgItem(ID)->GetDC();
-	IplImage*imgDst = cvCreateImage(cvSize(m_rectPic.Width(), m_rectPic.Height()), imgSrc->depth, imgSrc->nChannels);	
+	IplImage*imgDst = cvCreateImage(cvSize(m_rectPic.Width(), m_rectPic.Height()), imgSrc->depth, imgSrc->nChannels);
 	cvResize(imgSrc, imgDst, CV_INTER_LINEAR);
 	//在控件里显示图片
 	CvvImage cvImg;
@@ -1551,8 +1473,8 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	YXPFileIO::FindOrCreateDirectory(pathAttSrc.c_str());
 	YXPFileIO::FindOrCreateDirectory(pathAttDst.c_str());
 
-	YXPFileIO::DeleteDirectory(pathAttSrc,false);
-	YXPFileIO::DeleteDirectory(pathAttDst,false);
+	YXPFileIO::DeleteDirectory(pathAttSrc, false);
+	YXPFileIO::DeleteDirectory(pathAttDst, false);
 
 
 	CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
@@ -1604,7 +1526,7 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	LPTSTR szCmdline = _tcsdup(_T("\"") + attPath + _T("\""));
 	string strCmdline = W2A(szCmdline);
 
-	if (!CreateProcess(NULL, szCmdline, NULL, NULL, TRUE, NULL, NULL, appPath+"\\AttCut\\", &si, &pi))
+	if (!CreateProcess(NULL, szCmdline, NULL, NULL, TRUE, NULL, NULL, appPath + "\\AttCut\\", &si, &pi))
 	{
 		AfxMessageBox(_T("Error on CreateProcess()"));
 		CloseHandle(hWrite);
@@ -1681,7 +1603,7 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 	m_strPathUpSnap = m_strPath + "\\UpView_Snaped";
 	m_strPathUpPed = m_strPath + "\\UpView_Snaped_Processed";
 
-	if (!YXPFileIO::FolderExists(A2W(m_strPathMid.c_str())) 
+	if (!YXPFileIO::FolderExists(A2W(m_strPathMid.c_str()))
 		|| !YXPFileIO::FolderExists(A2W(m_strPathUp.c_str())))
 	{
 		AfxMessageBox(_T("未找到View文件夹!"));
