@@ -14,7 +14,6 @@
 CEvent start_event;
 bool g_bIsStarted = false; //开始播放的标志
 bool g_bIsPaused = true; //暂停标志
-//bool g_bReverse = false;    //反转标志 (后期应该丢弃，应该直接用FrameMgr中的reverse变量)
 
 IplImage *g_pFrame = NULL;
 
@@ -1336,8 +1335,9 @@ void CVideoPlayerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (m_bLBDown && g_bIsStarted && g_bIsPaused)
 	{
-#define ID_CURSOR MAKEINTRESOURCEA(IDR_SA1)
-		HCURSOR hCur = LoadCursorA(NULL, ID_CURSOR);
+		//HANDLE m_hNormalCursor = ::LoadImageA(NULL, MAKEINTRESOURCEA(), IMAGE_CURSOR, 32, 32, LR_SHARED);
+//#define ID_CURSOR MAKEINTRESOURCEA(IDR_SA1)
+		HCURSOR hCur = LoadCursorW(NULL, IDC_HAND);
 		::SetCursor(hCur);
 		int nR = (int)GetRValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
 		int nG = (int)GetGValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
@@ -1542,202 +1542,192 @@ void CVideoPlayerDlg::OnBnClickedBtnOnekey()
 {
 	//// TODO: 在此添加控件通知处理程序代码
 
-	//CString cStrPath(YXPFileIO::BrowseFolder(this->m_hWnd));
+	m_strPath = YXPFileIO::BrowseFolder("请选择Onekey目录", this->m_hWnd);
 
-	//if (cStrPath.IsEmpty())
-	//	return;
 
-	//USES_CONVERSION;
-	//m_strPath = CT2CA(cStrPath.GetBuffer()); //带前不带后
 
-	//if (m_strPath.find("View") != -1)
-	//{
-	//	AfxMessageBox(_T("无效路径,请选择根目录!"));
-	//	return;
-	//}
+	if (m_strPath.empty())
+		return;
 
-	//m_strPathMid = m_strPath + "\\MidView";
-	//m_strPathMidSnap = m_strPath + "\\MidView_Snaped";
-	//m_strPathMidPed = m_strPath + "\\MidView_Snaped_Processed";
-	//m_strPathUp = m_strPath + "\\UpView";
-	//m_strPathUpSnap = m_strPath + "\\UpView_Snaped";
-	//m_strPathUpPed = m_strPath + "\\UpView_Snaped_Processed";
+	if (m_strPath.find("View") != -1)
+	{
+		AfxMessageBox(_T("无效路径,请选择根目录!"));
+		return;
+	}
 
-	//if (!YXPFileIO::FolderExists(m_strPathMid)
-	//	|| !YXPFileIO::FolderExists(m_strPathUp))
-	//{
-	//	AfxMessageBox(_T("未找到View文件夹!"));
-	//	return;
-	//}
+	m_strPathMid = m_strPath + "\\MidView";
+	m_strPathMidSnap = m_strPath + "\\MidView_Snaped";
+	m_strPathMidPed = m_strPath + "\\MidView_Snaped_Processed";
+	m_strPathUp = m_strPath + "\\UpView";
+	m_strPathUpSnap = m_strPath + "\\UpView_Snaped";
+	m_strPathUpPed = m_strPath + "\\UpView_Snaped_Processed";
 
-	//YXPFileIO::FindOrMkDir(m_strPathMidSnap.c_str());
-	//YXPFileIO::FindOrMkDir(m_strPathMidPed.c_str());
-	//YXPFileIO::FindOrMkDir(m_strPathUpSnap.c_str());
-	//YXPFileIO::FindOrMkDir(m_strPathUpPed.c_str());
+	if (!YXPFileIO::FolderExists(m_strPathMid)
+		|| !YXPFileIO::FolderExists(m_strPathUp))
+	{
+		AfxMessageBox(_T("未找到View文件夹!"));
+		return;
+	}
 
-	//vector<string> Files_Mid, Files_Up;
-	//YXPFileIO::GetDirectoryFiles(m_strPathMid, Files_Mid);
-	//YXPFileIO::GetDirectoryFiles(m_strPathUp, Files_Up);
-	//int nMidCount = Files_Mid.size();
-	//int nUpCount = Files_Up.size();
-	//float fTotal = nMidCount + nUpCount;
-	//float fStep = 100.0 / (fTotal * 2);
+	YXPFileIO::FindOrMkDir(m_strPathMidSnap.c_str());
+	YXPFileIO::FindOrMkDir(m_strPathMidPed.c_str());
+	YXPFileIO::FindOrMkDir(m_strPathUpSnap.c_str());
+	YXPFileIO::FindOrMkDir(m_strPathUpPed.c_str());
 
-	//m_fProgress = 0.0;
-	//_beginthread(ThradProCtlCreate, 0, this);
-	//_beginthread(ProgressThread, 0, this);
+	vector<string> Files_Mid, Files_Up;
+	YXPFileIO::GetDirectoryFiles(m_strPathMid, Files_Mid);
+	YXPFileIO::GetDirectoryFiles(m_strPathUp, Files_Up);
+	int nMidCount = Files_Mid.size();
+	int nUpCount = Files_Up.size();
+	float fTotal = nMidCount + nUpCount;
+	float fStep = 100.0 / (fTotal * 2);
 
-	//Mat imgOrigin, imgSnaped, imgProcessed;
-	//imgOrigin = imread(Files_Mid[0]);
-	//Rect ROI;
-	//ROI.width = g_SnapWidth;
-	//ROI.height = g_SnapHeight;
-	//ROI.x = (imgOrigin.cols - g_SnapWidth) / 2;
-	//ROI.y = (imgOrigin.rows - g_SnapHeight) / 2;
-	//string fileNameNoExt;
+	m_fProgress = 0.0;
+	_beginthread(ThradProCtlCreate, 0, this);
+	_beginthread(ProgressThread, 0, this);
 
-	//for (auto midFile : Files_Mid)
-	//{
-	//	imgOrigin = imread(midFile);
-	//	imgSnaped = imgOrigin(ROI);
-	//	fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
-	//	imwrite(m_strPathMidSnap + "\\" + fileNameNoExt, imgSnaped);
-	//	cout << fileNameNoExt << " Snap Mid Done." << endl;
-	//	if (m_fProgress < 25.0)
-	//		m_fProgress += fStep;
-	//}
-	//m_fProgress = 25.0;
-	//for (auto upFile : Files_Up)
-	//{
-	//	imgOrigin = imread(upFile);
-	//	imgSnaped = imgOrigin(ROI);
-	//	fileNameNoExt = YXPFileIO::GetFileNameNoPath(upFile);
-	//	imwrite(m_strPathUpSnap + "\\" + fileNameNoExt, imgSnaped);
-	//	cout << fileNameNoExt << " Snap Up Done." << endl;
-	//	if (m_fProgress < 50.0)
-	//		m_fProgress += fStep;
-	//}
-	//m_fProgress = 50.0;
+	//上中视角截取
+	Mat imgOrigin, imgSnaped, imgProcessed;
+	imgOrigin = imread(Files_Mid[0]);
+	Rect ROI;
+	ROI.width = g_SnapWidth;
+	ROI.height = g_SnapHeight;
+	ROI.x = (imgOrigin.cols - g_SnapWidth) / 2;
+	ROI.y = (imgOrigin.rows - g_SnapHeight) / 2;
+	string fileNameNoExt;
 
-	////中视角处理开始
-	//YXPFileIO::GetDirectoryFiles(m_strPathMidSnap, Files_Mid);
-	//YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, Files_Up);
-	//Rect rectGrabCut;
-	//rectGrabCut.x = (g_SnapWidth - g_GrabWidth) / 2;
-	//rectGrabCut.x = (g_SnapHeight - g_GrabHeight) / 2;
-	//rectGrabCut.width = g_GrabWidth;
-	//rectGrabCut.height = g_GrabHeight;
+	for (auto midFile : Files_Mid)
+	{
+		imgOrigin = imread(midFile);
+		imgSnaped = imgOrigin(ROI);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
+		imwrite(m_strPathMidSnap + "\\" + fileNameNoExt, imgSnaped);
+		cout << fileNameNoExt << " Snap Mid Done." << endl;
+		if (m_fProgress < 25.0)
+			m_fProgress += fStep;
+	}
+	m_fProgress = 25.0;
+	for (auto upFile : Files_Up)
+	{
+		imgOrigin = imread(upFile);
+		imgSnaped = imgOrigin(ROI);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(upFile);
+		imwrite(m_strPathUpSnap + "\\" + fileNameNoExt, imgSnaped);
+		cout << fileNameNoExt << " Snap Up Done." << endl;
+		if (m_fProgress < 50.0)
+			m_fProgress += fStep;
+	}
+	m_fProgress = 50.0;
 
-	//for (auto midFile : Files_Mid)
-	//{
-	//	Mat imgOrigin, imgProcessed;
-	//	imgOrigin = imread(midFile);
-	//	m_extractor.TargetExtract_GrabCut(imgOrigin, imgProcessed, rectGrabCut, 3, 0.25);
-	//	fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
-	//	imwrite(m_strPathMidPed + "\\" + fileNameNoExt, imgProcessed);
-	//	cout << fileNameNoExt << " GrabCut Done." << endl;
-	//	if (m_fProgress < 75.0)
-	//		m_fProgress += fStep;
-	//}
-	//m_fProgress = 75.0;
+	//中视角处理开始
+	YXPFileIO::GetDirectoryFiles(m_strPathMidSnap, Files_Mid);
+	YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, Files_Up);
+	Rect rectGrabCut;
+	rectGrabCut.x = (g_SnapWidth - g_GrabWidth) / 2;
+	rectGrabCut.x = (g_SnapHeight - g_GrabHeight) / 2;
+	rectGrabCut.width = g_GrabWidth;
+	rectGrabCut.height = g_GrabHeight;
 
-	////上视角处理开始
-	//CString wPathAttSrc = GetAppPath() + L"AttCut\\src";
-	//CString wPathAttDst = GetAppPath() + L"AttCut\\out";
-	//string pathAttSrc = W2A(wPathAttSrc);
-	//string pathAttDst = W2A(wPathAttDst);
-	//YXPFileIO::FindOrMkDir(pathAttSrc.c_str());
-	//YXPFileIO::FindOrMkDir(pathAttDst.c_str());
-	//YXPFileIO::DeleteDirectory(pathAttSrc);
-	//YXPFileIO::DeleteDirectory(pathAttDst);
+	for (auto midFile : Files_Mid)
+	{
+		Mat imgOrigin, imgProcessed;
+		imgOrigin = imread(midFile);
+		m_extractor.TargetExtract_GrabCut(imgOrigin, imgProcessed, rectGrabCut, 3, 0.25);
+		fileNameNoExt = YXPFileIO::GetFileNameNoPath(midFile);
+		imwrite(m_strPathMidPed + "\\" + fileNameNoExt, imgProcessed);
+		cout << fileNameNoExt << " GrabCut Done." << endl;
+		if (m_fProgress < 75.0)
+			m_fProgress += fStep;
+	}
+	m_fProgress = 75.0;
 
-	////先拷贝源文件夹到AttCut需要处理的地方
-	//vector<string> strVecPics;
-	//YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, strVecPics);
-	//for (auto it = strVecPics.begin(); it != strVecPics.end(); ++it)
-	//{
-	//	string filename = it->substr(it->rfind("\\"), it->length());
-	//	CString wfilename = A2W(filename.c_str());
-	//	CString wPathSrc = A2W((*it).c_str());
-	//	CopyFile(wPathSrc, wPathAttSrc + wfilename, FALSE);
-	//}
+	//上视角处理开始
+	string pathAttSrc = YXPFileIO::GetAppPath() + "\\AttCut\\src";;
+	string pathAttDst = YXPFileIO::GetAppPath() + "\\AttCut\\out";
+	YXPFileIO::FindOrMkDir(pathAttSrc.c_str());
+	YXPFileIO::FindOrMkDir(pathAttDst.c_str());
+	YXPFileIO::DeleteDirectory(pathAttSrc);
+	YXPFileIO::DeleteDirectory(pathAttDst);
 
-	////启动管道操作
-	//SECURITY_ATTRIBUTES sa;
-	//HANDLE hRead, hWrite;
-	//sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	//先拷贝源文件夹到AttCut需要处理的地方
+	YXPFileIO::CopyDirFiles(m_strPathMidSnap, pathAttSrc);
 
-	//sa.lpSecurityDescriptor = NULL;
-	//sa.bInheritHandle = TRUE;
-	//if (!CreatePipe(&hRead, &hWrite, &sa, 0))
-	//{
-	//	AfxMessageBox(_T("Error On CreatePipe()"));
-	//	return;
-	//}
+	//启动管道操作
+	SECURITY_ATTRIBUTES sa;
+	HANDLE hRead, hWrite;
+	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
 
-	//STARTUPINFOA si;
-	//PROCESS_INFORMATION pi;
-	//si.cb = sizeof(STARTUPINFO);
-	//GetStartupInfoA(&si);
-	//si.hStdError = hWrite;
-	//si.hStdOutput = hWrite;
-	//si.wShowWindow = SW_HIDE;
-	//si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-	//string appPath = YXPFileIO::GetAppPath();
-	//string attPath = appPath + "AttCut\\AttCutDemo.bat";
-	//LPTSTR szCmdline = _tcsdup(_T("\"") + attPath + _T("\""));
-	//string strCmdline = W2A(szCmdline);
+	sa.lpSecurityDescriptor = NULL;
+	sa.bInheritHandle = TRUE;
+	if (!CreatePipe(&hRead, &hWrite, &sa, 0))
+	{
+		AfxMessageBox(_T("Error On CreatePipe()"));
+		return;
+	}
 
-	//if (!CreateProcess(NULL, szCmdline, NULL, NULL, TRUE, NULL, NULL, appPath + "\\AttCut\\", &si, &pi))
-	//{
-	//	AfxMessageBox(_T("Error on CreateProcess()"));
-	//	CloseHandle(hWrite);
-	//	CloseHandle(hRead);
-	//	return;
-	//}
-	//CloseHandle(hWrite);
-	//char buffer[4096] = { 0 };
-	//DWORD bytesRead;
-	//while (true)
-	//{
-	//	if (ReadFile(hRead, buffer, 4095, &bytesRead, NULL) == NULL)
-	//	{
-	//		break;
-	//	}
-	//	Sleep(200);
-	//}
-	//CloseHandle(hRead);
-	//delete[]szCmdline;
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+	si.cb = sizeof(STARTUPINFOA);
+	GetStartupInfoA(&si);
+	si.hStdError = hWrite;
+	si.hStdOutput = hWrite;
+	si.wShowWindow = SW_HIDE;
+	si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+	std::string appPath = YXPFileIO::GetAppPath();
+	std::string attPath = appPath + "\\AttCut\\AttCutDemo.bat";
+	string cmdLine("\"");
+	cmdLine += attPath + "\"";
 
-	////执行完了再拷贝回来
-	//vector<std::string> strVecSrcPics;
-	//vector<std::string> strVecMaskPics;
-	//YXPFileIO::GetDirectoryFiles(pathAttDst, strVecMaskPics);
-	//YXPFileIO::GetDirectoryFiles(m_strPathUpSnap, strVecSrcPics);
-	//if (strVecMaskPics.size() != strVecSrcPics.size())
-	//{
-	//	AfxMessageBox(_T("掩模图像数目不一致！"));
-	//	return;
-	//}
+	if (!CreateProcessA(NULL, const_cast<char *>(cmdLine.c_str()),
+		NULL, NULL, TRUE, NULL, NULL, (appPath + "\\AttCut\\").c_str(),
+		&si, &pi))
+	{
+		AfxMessageBox(_T("Error on CreateProcess()"));
+		CloseHandle(hWrite);
+		CloseHandle(hRead);
+		return;
+	}
+	CloseHandle(hWrite);
+	char buffer[4096] = { 0 };
+	DWORD bytesRead;
+	while (true)
+	{
+		if (ReadFile(hRead, buffer, 4095, &bytesRead, NULL) == NULL)
+			break;
+		Sleep(200);
+	}
+	CloseHandle(hRead);
 
-	//for (int i = 0; i != strVecSrcPics.size(); ++i)
-	//{
-	//	Mat img, mask, dst;
-	//	img = imread(strVecSrcPics[i]);
-	//	mask = imread(strVecMaskPics[i]);
-	//	//模板稍微圆滑一下
-	//	blur(mask, mask, Size(11, 11));
-	//	threshold(mask, mask, 128, 255, CV_THRESH_BINARY);
-	//	//拷贝
-	//	img.copyTo(dst, mask);
-	//	cout << YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]) << " AttCut Done." << endl;
-	//	imwrite(m_strPathUpPed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]), dst);
-	//	if (m_fProgress < 100.0)
-	//		m_fProgress += fStep;
-	//}
-	//m_fProgress = 100.0;
-	//Sleep(100); //delay is neccessary
-	//AfxMessageBox(_T("Process Done!"));
+	//执行完了再用掩模拷贝回来
+	vector<std::string> strVecSrcPics;
+	vector<std::string> strVecMaskPics;
+	YXPFileIO::GetDirectoryFiles(pathAttDst, strVecMaskPics);
+	YXPFileIO::GetDirectoryFiles(m_strPathMidSnap, strVecSrcPics);
+	if (strVecMaskPics.size() != strVecSrcPics.size())
+	{
+		AfxMessageBox(_T("掩模图像数目不一致！"));
+		return;
+	}
+
+	for (int i = 0; i != strVecSrcPics.size(); ++i)
+	{
+		Mat img, mask, dst;
+		img = imread(strVecSrcPics[i]);
+		mask = imread(strVecMaskPics[i]);
+		//模板稍微圆滑一下
+		blur(mask, mask, Size(11, 11));
+		threshold(mask, mask, 128, 255, CV_THRESH_BINARY);
+		//拷贝
+		img.copyTo(dst, mask);
+		cout << m_strPathUpPed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]) << endl;
+		imwrite(m_strPathUpPed + "\\" + YXPFileIO::GetFileNameNoPath(strVecSrcPics[i]), dst);
+	}
+
+
+	AfxMessageBox(L"DONE!");
+	m_fProgress = 100.0;
+	Sleep(100); //delay is neccessary
+	AfxMessageBox(_T("Process Done!"));
 
 }
 

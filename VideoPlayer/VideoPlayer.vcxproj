@@ -236,6 +236,8 @@
     <None Include="res\VideoPlayer.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\My Pictures\宫园薰.png" />
+    <Image Include="..\..\..\..\My Pictures\西元号密保卡_c437yuyang.png" />
     <Image Include="..\..\..\1.jpg" />
     <Image Include="res\bitmap1.bmp" />
     <Image Include="res\VideoPlayer.ico" />

@@ -110,5 +110,11 @@
     <Image Include="..\..\..\1.jpg">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\..\..\..\My Pictures\西元号密保卡_c437yuyang.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\My Pictures\宫园薰.png">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
