@@ -14,82 +14,75 @@ YXPFileIO::~YXPFileIO()
 
 
 //创建指定目录，其父目录必须存在
-bool YXPFileIO::FindOrCreateDirectory(const char *pszPath)
+//就算用A版本不用W版本，也是支持中文的
+bool YXPFileIO::FindOrMkDir(const std::string& pszPath)
 {
 	USES_CONVERSION;
-	WIN32_FIND_DATA fd;
-	HANDLE hFind = ::FindFirstFileW(A2W(pszPath), &fd);
+	WIN32_FIND_DATAA fd;
+	HANDLE hFind = ::FindFirstFileA(pszPath.c_str(), &fd);
 	while (hFind != INVALID_HANDLE_VALUE)
 	{
 		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
-			//::AfxMessageBox(_T("目录存在！"));
 			return true;
-		}
 	}
 
-	if (!::CreateDirectory(A2W(pszPath), NULL))
+	if (!::CreateDirectoryA(pszPath.c_str(), NULL))
 	{
-		//char szDir[MAX_PATH];
 		::AfxMessageBox(_T("创建目录失败"));
 		return false;
 	}
 	else
-	{
 		return true;
-		//::AfxMessageBox(_T("创建目录成功"));
-	}
 }
 
 
 
 // 判断目录是否存在(/或\\都可以，带后不带后\\都可以)  
-bool YXPFileIO::FolderExists(const CString& s)
+bool YXPFileIO::FolderExists(const std::string& s)
 {
 	DWORD attr;
-	attr = GetFileAttributes(s);
+	attr = GetFileAttributesA(s.c_str());
 	return (attr != (DWORD)(-1)) &&
 		(attr & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-bool YXPFileIO::FileExists(const CString& s)
+
+bool YXPFileIO::FileExists(const std::string& s)
 {
 	DWORD attr;
-	attr = GetFileAttributes(s);
+	attr = GetFileAttributesA(s.c_str());
 	return (attr != (DWORD)(-1)) &&
 		(attr & FILE_ATTRIBUTE_ARCHIVE); //这样，隐藏的或者只读的都能检测到
 }
 
-
 // 递归创建目录（不能使用/，只能\\，带后不带后\\都可以)
 // 如果目录已经存在或者创建成功返回TRUE  
-bool YXPFileIO::SuperMkDir(const CString& path)
+bool YXPFileIO::RecurMkDir(const std::string& path)
 {
-	CString P(path);
-	int len = P.GetLength();
+	string p(path);
+	int len = p.length();
 	if (len < 2) return false;
 
-	if ('\\' == P[len - 1])
+	if ('\\' == p[len - 1])
 	{
-		P = P.Left(len - 1);
-		len = P.GetLength();
+		p = p.substr(0, len - 1);
+		len = p.length();
 	}
 	if (len <= 0) return false;
 
 	if (len <= 3)
 	{
-		if (FolderExists(P))return true;
+		if (FolderExists(p)) return true;
 		else return false;
 	}
 
-	if (FolderExists(P))return true;
+	if (FolderExists(p))return true;
 
-	CString Parent;
-	Parent = P.Left(P.ReverseFind('\\'));
+	string parDir = p.substr(0, p.rfind('\\'));
 
-	if (Parent.GetLength() <= 0)return false;
+	if (parDir.length() <= 0)return false;
 
-	bool Ret = SuperMkDir(Parent);
+	bool Ret = RecurMkDir(parDir);
 
 	if (Ret)
 	{
@@ -97,7 +90,7 @@ bool YXPFileIO::SuperMkDir(const CString& path)
 		sa.nLength = sizeof(SECURITY_ATTRIBUTES);
 		sa.lpSecurityDescriptor = NULL;
 		sa.bInheritHandle = 0;
-		Ret = (CreateDirectory(P, &sa) == TRUE);
+		Ret = (CreateDirectoryA(p.c_str(), &sa) == TRUE);
 		return Ret;
 	}
 	else
@@ -141,9 +134,7 @@ void YXPFileIO::GetDirectoryFiles(const string &strFolder,
 			continue;
 		if (OnlyFiles)
 		{
-			//TODO::这里应该换一下不要用A2W,后面文件多了性能会很低
-			CString temp = A2W((tempfolder + filefind.name).c_str());
-			if (FileExists(temp))
+			if (FileExists(tempfolder + filefind.name))
 			{
 				strVecFileNames.push_back(tempfolder + filefind.name);
 			}
@@ -151,7 +142,7 @@ void YXPFileIO::GetDirectoryFiles(const string &strFolder,
 		else if (OnlyDirectories)
 		{
 			CString temp = A2W((tempfolder + filefind.name).c_str());
-			if (FolderExists(temp))
+			if (FileExists(tempfolder + filefind.name))
 			{
 				strVecFileNames.push_back(tempfolder + filefind.name);
 			}
@@ -165,17 +156,17 @@ void YXPFileIO::GetDirectoryFiles(const string &strFolder,
 	_findclose(handle);
 	if (OnlyDirectories) return; //只检索目录的话就返回了
 	//去掉不需要的后缀名文件
-	if (!extInclude.empty()) 
+	if (!extInclude.empty())
 	{
-		for (auto path = strVecFileNames.begin(); path !=strVecFileNames.end();)
+		for (auto path = strVecFileNames.begin(); path != strVecFileNames.end();)
 		{
-			if (!FileExists(A2W((path->c_str()))))
+			if (!FileExists(path->c_str()))
 			{
 				++path;
 				continue; //不考虑目录
 			}
 
-			if (!CheckFileExt(*path, extInclude)) 
+			if (!CheckFileExt(*path, extInclude))
 				path = strVecFileNames.erase(path);
 			else
 				++path;
@@ -187,7 +178,7 @@ void YXPFileIO::GetDirectoryFiles(const string &strFolder,
 	{
 		for (auto path = strVecFileNames.begin(); path != strVecFileNames.end();)
 		{
-			if (!FileExists(A2W((path->c_str())))) 
+			if (!FileExists(path->c_str()))
 			{
 				++path;
 				continue; //不考虑目录
@@ -203,42 +194,40 @@ void YXPFileIO::GetDirectoryFiles(const string &strFolder,
 }
 
 //后面一定要再检查返回值是否为空!,操作还是会继续的
-CString YXPFileIO::BrowseFolder(const HWND owner)
+std::string YXPFileIO::BrowseFolder(const std::string & title, const HWND owner)
 {
-
-	TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
-
-	ZeroMemory(wchPath, sizeof(wchPath));
-	BROWSEINFO bi;
+	//TCHAR wchPath[MAX_PATH];     //存放选择的目录路径 
+	char path[MAX_PATH];
+	ZeroMemory(path, sizeof(path));
+	BROWSEINFOA bi;
 	bi.hwndOwner = owner;
 	bi.pidlRoot = NULL;
-	bi.pszDisplayName = wchPath;
-	bi.lpszTitle = _T("请选择需要打开的目录：");
+	bi.pszDisplayName = path;
+	bi.lpszTitle = title.c_str();
 	bi.ulFlags = 0;
 	bi.lpfn = NULL;
 	bi.lParam = 0;
 	bi.iImage = 0;
 	//弹出选择目录对话框
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
+	LPITEMIDLIST lp = SHBrowseForFolderA(&bi);
 	CString cStrPath;
-	if (lp && SHGetPathFromIDList(lp, wchPath))
+	if (lp && SHGetPathFromIDListA(lp, path))
 	{
-		cStrPath.Format(_T("%s"), wchPath);//转为Cstring类型
+		return path;
 	}
+	return "";
 
-	return cStrPath;
 }
 
-void YXPFileIO::DeleteDirectory(const std::string path,bool delFolder)
+void YXPFileIO::DeleteDirectory(const std::string path, bool delFolder)
 {
-	USES_CONVERSION;
-	if (path.empty() || !FolderExists(A2W(path.c_str()))) return;
+	if (path.empty() || !FolderExists(path.c_str())) return;
 	vector<string> files;
 	GetDirectoryFiles(path, files);
-	if (!files.empty()) 
+	if (!files.empty())
 		for (int i = 0; i != files.size(); ++i)
 			DeleteFileA(files[i].c_str());
-	if(delFolder)
+	if (delFolder)
 		RemoveDirectoryA(path.c_str());
 }
 
@@ -271,4 +260,90 @@ bool YXPFileIO::CheckFileExt(const std::string& Path, const std::string &ext)
 	if (ext_dst.compare(ext_src)) return false;
 	return true;
 
+}
+
+
+//重命名目录或文件，IsExistReplace指定存在时会否替换
+bool YXPFileIO::Rename(const std::string &src, const std::string &dst, bool IsExistReplace)
+{
+	//文件不存在直接返回false
+	if (!FileExists(src) && !FolderExists(src)) return false;
+	if ((FileExists(dst) || FolderExists(dst)) && !IsExistReplace)
+		return false;
+
+	if (FileExists(dst) && IsExistReplace)
+	{
+		DeleteFileA(dst.c_str());
+	}
+
+	if (FolderExists(dst) && IsExistReplace)
+	{
+		DeleteDirectory(dst, true); //不能递归删除目录，只能删除含有文件的目录
+	}
+
+
+	//win sdk的rename函数说明:
+	//1.目标文件名已经存在会返回-1失败
+	//2.理所应当的可以跨目录
+	//3.可以直接重命名目录，里面有文件也可以,当然同理目标目录已存在(无论有文件否)会报错
+	return	rename(src.c_str(), dst.c_str()) < 0 ? false : true;
+}
+
+std::string YXPFileIO::GetAppPath()
+{
+	char exeFullPath[MAX_PATH];
+
+	GetModuleFileNameA(NULL, exeFullPath, MAX_PATH);
+	string pathName(exeFullPath);
+
+	//返回值最后不带'\\'
+	int index = pathName.rfind('\\');
+	return pathName.substr(0, index);
+}
+
+//其实这些操作可以返回值返回为enum,更直观，光是返回false，太不清晰了
+//要求dst目录必须已经存在,只拷贝文件
+bool YXPFileIO::CopyDirFiles(const std::string & src, const std::string & dst, bool IsExistReplace)
+{
+	string dstPath(dst);
+	if (!FolderExists(src) || dstPath.empty()) return false;
+
+	if (dstPath[dstPath.length() - 1] == '\\')
+	{
+		dstPath = dstPath.substr(0, dstPath.length() - 1);
+	}
+
+
+	vector<std::string> srcFiles;
+
+	GetDirectoryFiles(src, srcFiles,true);
+	if (!IsExistReplace) //不进行替换的情况下，先检查有重复文件否,防止出现部分拷贝
+	{
+		vector<std::string> dstFiles;
+		GetDirectoryFiles(dstPath, dstFiles, true);
+		for (auto srcFile : srcFiles)
+		{
+			for (auto dstFile : dstFiles)
+			{
+				if (_stricmp(GetFileNameNoPath(srcFile).c_str(),
+								GetFileNameNoPath(dstFile).c_str()) == 0)
+					return false;
+			}
+
+		}
+	}
+
+
+
+	//CopyFile:
+	//If the function succeeds, the return value is nonzero.
+	//If the function fails, the return value is zero.To get extended error information, call GetLastError.
+	for (auto it=srcFiles.begin();it!=srcFiles.end();++it)
+	{
+		if (!CopyFileA(it->c_str(), (dst +"\\"+ GetFileNameNoPath(*it)).c_str(), !IsExistReplace))
+			return false;
+	}
+
+
+	return true;
 }

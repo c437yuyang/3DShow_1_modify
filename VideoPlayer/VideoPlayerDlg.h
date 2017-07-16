@@ -109,7 +109,6 @@ public:
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
-	CString GetAppPath();
 
 	bool m_bLBDown;
 	CPoint m_ptOrigin;

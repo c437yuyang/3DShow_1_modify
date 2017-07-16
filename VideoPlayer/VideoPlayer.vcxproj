@@ -232,9 +232,12 @@
     <ResourceCompile Include="VideoPlayer.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\cursor1.cur" />
     <None Include="res\VideoPlayer.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\1.jpg" />
+    <Image Include="res\bitmap1.bmp" />
     <Image Include="res\VideoPlayer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
