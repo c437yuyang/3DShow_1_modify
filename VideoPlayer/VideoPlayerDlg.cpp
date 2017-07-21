@@ -226,6 +226,7 @@ BEGIN_MESSAGE_MAP(CVideoPlayerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_AttCut, &CVideoPlayerDlg::OnBnClickedAttcut)
 	ON_BN_CLICKED(IDC_BTN_ONEKEY, &CVideoPlayerDlg::OnBnClickedBtnOnekey)
 	ON_WM_EXITSIZEMOVE()
+	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 
@@ -358,7 +359,7 @@ HCURSOR CVideoPlayerDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void writeFramesToVideo(const vector<std::string> &vecImgs, const std::string &videoFileName,float &progress,float fStep)  //∫Û¡Ω∏ˆ≤Œ ˝÷ª «’‚¿Ô“™”√£¨µ∞Ã€
+void writeFramesToVideo(const vector<std::string> &vecImgs, const std::string &videoFileName, float &progress, float fStep)  //∫Û¡Ω∏ˆ≤Œ ˝÷ª «’‚¿Ô“™”√£¨µ∞Ã€
 {
 	VideoWriter writer;
 	int frameRate = 5;
@@ -461,15 +462,15 @@ void CVideoPlayerDlg::OnBnClickedStartvideo()
 
 	//∏ƒŒ™√ø¥Œ∂º÷ÿ–¬…˙≥…£®≤ª»ª∫‹»›“◊∏˜÷÷¥ÌŒÛ£©
 	writeFramesToVideo(MidFilesPath, strVideoPathMid, m_fProgress, fStep);
-	
+
 	m_fProgress = 50.0;
 	Sleep(100);
 
 	writeFramesToVideo(UpFilesPath, strVideoPathUp, m_fProgress, fStep);
 	m_fProgress = 80.0;
 
-	if (!YXPFileIO::Rename(strVideoPathMid, strPlyPathMid,true) ||
-		!YXPFileIO::Rename(strVideoPathUp, strPlyPathUp,true))
+	if (!YXPFileIO::Rename(strVideoPathMid, strPlyPathMid, true) ||
+		!YXPFileIO::Rename(strVideoPathUp, strPlyPathUp, true))
 	{
 		AfxMessageBox(_T("ƒ⁄≤ø¥ÌŒÛ!"));
 		return;
@@ -728,64 +729,8 @@ void CVideoPlayerDlg::OnLButtonDown(UINT nFlags, CPoint point)  // Û±Í◊Ûº¸∞¥œ¬,œ
 	// TODO:  ‘⁄¥ÀÃÌº”œ˚œ¢¥¶¿Ì≥Ã–Ú¥˙¬Î∫Õ/ªÚµ˜”√ƒ¨»œ÷µ
 	if (g_bIsPaused && g_bIsStarted)
 	{
-		//÷±Ω”»°œ˚œ¬“ª÷°≤•∑≈
-		//CRect rect;
-		//CWnd  *pWnd;
-		//int picWidth;
-		//int picHeight;
-		//pWnd = GetDlgItem(IDC_VIDEO);
-		//pWnd->GetClientRect(&rect);
-		////«ÛÕº∆¨øÿº˛µƒøÌ∫Õ∏ﬂ
-		//picWidth = rect.Width();
-		//picHeight = rect.Height();
-
-		////  Õ®π˝∂‘pointµƒŒª÷√≈–∂®£¨—°»°œ¬“ª÷°ªÚ’ﬂ«∞“ª÷°°£
-
-		//// ◊Û…œ…œ“ª÷°
-		//if ((point.x >= rect.left && point.x <= picWidth / 2) && (point.y >= rect.top && point.y <= picHeight / 2))
-		//{
-		//	m_fmgr.PreFrame();
-		//	if (m_bIsUpView)
-		//	{
-		//		cvSetCaptureProperty(g_pCaptureUp, CV_CAP_PROP_POS_FRAMES, m_fmgr.GetFrameIndex());
-		//		g_pFrame = cvQueryFrame(g_pCaptureUp);
-		//	}
-		//	else
-		//	{
-		//		cvSetCaptureProperty(g_pCaptureMid, CV_CAP_PROP_POS_FRAMES, m_fmgr.GetFrameIndex());
-		//		g_pFrame = cvQueryFrame(g_pCaptureMid);
-		//	}
-		//	OnDisplay();
-		//}
-		//// ”“œ¬‘Úœ¬“ª÷°
-		//else if ((point.x <= rect.right && point.x >= picWidth / 2) && (point.y <= rect.bottom && point.y >= picHeight / 2))
-		//{
-		//	m_fmgr.NextFrame();
-		//	if (m_bIsUpView)
-		//	{
-		//		cvSetCaptureProperty(g_pCaptureUp, CV_CAP_PROP_POS_FRAMES, m_fmgr.GetFrameIndex());
-		//		g_pFrame = cvQueryFrame(g_pCaptureUp);
-		//	}
-		//	else
-		//	{
-		//		cvSetCaptureProperty(g_pCaptureMid, CV_CAP_PROP_POS_FRAMES, m_fmgr.GetFrameIndex());
-		//		g_pFrame = cvQueryFrame(g_pCaptureMid);
-		//	}
-		//	OnDisplay();
-		//}
-		//else
-		//{
-		//	//return;
-		//}
-
-		//if (m_rectPic.PtInRect(point))
-		//{
-		//	m_ptOrigin = point;
-		//	m_bLBDown = true;
-		//}
 		m_ptOrigin = point;
 		m_bLBDown = true;
-		//cout << "m_bLBDown = true;" << endl; //’‚¿Ô√ªŒ Ã‚
 	}
 
 	CDialogEx::OnLButtonDown(nFlags, point);
@@ -796,11 +741,7 @@ void CVideoPlayerDlg::OnLButtonUp(UINT nFlags, CPoint point)  // Û±Í◊Ûº¸À…ø™
 {
 	// TODO:  ‘⁄¥ÀÃÌº”œ˚œ¢¥¶¿Ì≥Ã–Ú¥˙¬Î∫Õ/ªÚµ˜”√ƒ¨»œ÷µ
 	if (m_bLBDown)
-	{
 		m_bLBDown = false;
-		//cout << "OnLButtonUp" << endl;
-	}
-	//cout << "m_bLBDown = false;OnLButtonUp" << endl;
 
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
@@ -1335,10 +1276,7 @@ void CVideoPlayerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	// TODO: ‘⁄¥ÀÃÌº”œ˚œ¢¥¶¿Ì≥Ã–Ú¥˙¬Î∫Õ/ªÚµ˜”√ƒ¨»œ÷µ
 	if (m_bLBDown && g_bIsStarted && g_bIsPaused)
 	{
-		//HANDLE m_hNormalCursor = ::LoadImageA(NULL, MAKEINTRESOURCEA(), IMAGE_CURSOR, 32, 32, LR_SHARED);
-//#define ID_CURSOR MAKEINTRESOURCEA(IDR_SA1)
-		HCURSOR hCur = LoadCursorW(NULL, IDC_HAND);
-		::SetCursor(hCur);
+		//ÃÊªª Û±Í≤Ÿ◊˜≤ªƒ‹…Ë÷√µΩ’‚¿Ô£¨“™–¥‘⁄onsetcursor¿Ô√Ê£¨≤ª»ª Û±Íª·…¡À∏
 		int nR = (int)GetRValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
 		int nG = (int)GetGValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
 		int nB = (int)GetBValue(GetPixel(GetDC()->m_hDC, point.x, point.y));
@@ -1448,7 +1386,7 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 
 	YXPFileIO::DeleteDirectory(pathAttSrc, false);
 	YXPFileIO::DeleteDirectory(pathAttDst, false);
-	g_strPathMid = YXPFileIO::BrowseFolder("«Î—°‘ÒAttCutƒø¬º",this->m_hWnd);
+	g_strPathMid = YXPFileIO::BrowseFolder("«Î—°‘ÒAttCutƒø¬º", this->m_hWnd);
 
 	if (g_strPathMid.empty())
 		return;
@@ -1487,9 +1425,9 @@ void CVideoPlayerDlg::OnBnClickedAttcut()
 	string cmdLine("\"");
 	cmdLine += attPath + "\"";
 
-	if (!CreateProcessA(NULL, const_cast<char *>(cmdLine.c_str()), 
-						NULL, NULL, TRUE, NULL, NULL, (appPath + "\\AttCut\\").c_str(),
-						&si, &pi))
+	if (!CreateProcessA(NULL, const_cast<char *>(cmdLine.c_str()),
+		NULL, NULL, TRUE, NULL, NULL, (appPath + "\\AttCut\\").c_str(),
+		&si, &pi))
 	{
 		AfxMessageBox(_T("Error on CreateProcess()"));
 		CloseHandle(hWrite);
@@ -1739,4 +1677,27 @@ void CVideoPlayerDlg::OnExitSizeMove()
 	//Invalidate(true); //–¥‘⁄’‚¿Ôªπ «”–Œ Ã‚£¨÷±Ω”Àı–°∫Û «¥ÌŒÛµƒ
 	//UpdateWindow();
 	CDialogEx::OnExitSizeMove();
+}
+
+// µœ÷‘›Õ£µƒ ±∫ÚÕœ∂ØŒÔÃÂ«–ªª Û±Í÷∏’Î
+BOOL CVideoPlayerDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	// TODO: ‘⁄¥ÀÃÌº”œ˚œ¢¥¶¿Ì≥Ã–Ú¥˙¬Î∫Õ/ªÚµ˜”√ƒ¨»œ÷µ
+	if (m_bLBDown && g_bIsStarted && g_bIsPaused)
+	{
+		CPoint pos;
+		::GetCursorPos(&pos);
+		ScreenToClient(&pos);
+		int nR = (int)GetRValue(GetPixel(GetDC()->m_hDC, pos.x, pos.y));
+		int nG = (int)GetGValue(GetPixel(GetDC()->m_hDC, pos.x, pos.y));
+		int nB = (int)GetBValue(GetPixel(GetDC()->m_hDC, pos.x, pos.y));
+		if (nR == 0 && nG == 0 && nB == 0) //≈–∂œ∑««∞æ∞ŒÔµƒ«Èøˆ
+			return CDialogEx::OnSetCursor(pWnd, nHitTest, message);
+		auto cursor = LoadCursorA(AfxGetApp()->m_hInstance, MAKEINTRESOURCEA(IDC_CURSOR2));
+		::SetCursor(cursor);
+		return TRUE;
+	}
+	else
+		return CDialogEx::OnSetCursor(pWnd, nHitTest, message);
+
 }

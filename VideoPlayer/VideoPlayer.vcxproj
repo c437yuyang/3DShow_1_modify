@@ -232,12 +232,11 @@
     <ResourceCompile Include="VideoPlayer.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\cursor1.cur" />
+    <None Include="..\..\..\CUR_鼠标样式\32_1.cur" />
+    <None Include="..\..\..\CUR_鼠标样式\32_3.cur" />
     <None Include="res\VideoPlayer.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\My Pictures\宫园薰.png" />
-    <Image Include="..\..\..\..\My Pictures\西元号密保卡_c437yuyang.png" />
     <Image Include="..\..\..\1.jpg" />
     <Image Include="res\bitmap1.bmp" />
     <Image Include="res\VideoPlayer.ico" />

@@ -121,4 +121,5 @@ public:
 	afx_msg void OnBnClickedBtnOnekey();
 	string m_strPath,m_strPathMid,m_strPathUp,m_strPathMidSnap,m_strPathMidPed,m_strPathUpSnap,m_strPathUpPed;
 	afx_msg void OnExitSizeMove();
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 };
